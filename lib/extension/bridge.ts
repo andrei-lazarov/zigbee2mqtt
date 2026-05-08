@@ -243,7 +243,10 @@ export default class Bridge extends Extension {
         }
 
         const newSettings = message.options as Partial<Settings>;
-        this.restartRequired = settings.apply(newSettings);
+        const newRestartRequired = settings.apply(newSettings);
+        if (newRestartRequired) {
+            this.restartRequired = newRestartRequired;
+        }
 
         // Apply some settings on-the-fly.
         if (newSettings.homeassistant) {
@@ -262,9 +265,13 @@ export default class Bridge extends Extension {
             logger.setDebugNamespaceIgnore(settings.get().advanced.log_debug_namespace_ignore);
         }
 
-        logger.info("Successfully changed options");
+        if (newRestartRequired) {
+            logger.info("Changes require restart to take effect");
+        } else {
+            logger.info("Successfully changed options");
+        }
         await this.publishInfo();
-        return utils.getResponse(message, {restart_required: this.restartRequired});
+        return utils.getResponse(message, {restart_required: newRestartRequired});
     }
 
     @bind async deviceRemove(message: string | KeyValue): Promise<Zigbee2MQTTResponse<"bridge/response/device/remove">> {
